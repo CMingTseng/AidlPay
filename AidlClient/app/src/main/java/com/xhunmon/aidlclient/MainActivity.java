@@ -15,6 +15,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.android.aidl.player.IPlayer;
 import com.xhunmon.aidl.pay.IPay;
 
 import java.util.List;
@@ -22,9 +23,10 @@ import java.util.List;
 public class MainActivity extends Activity implements View.OnClickListener{
 
     private EditText mInput;
-    private TextView mSpare;
+    private TextView mSpare,mResult;
 
     private IPay mIPay;
+    private IPlayer mIPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,12 +37,33 @@ public class MainActivity extends Activity implements View.OnClickListener{
          findViewById(R.id.pay).setOnClickListener(this);
         mSpare = (TextView) findViewById(R.id.spare);
 
+         findViewById(R.id.player).setOnClickListener(this);
+         findViewById(R.id.stop).setOnClickListener(this);
+        mResult = (TextView) findViewById(R.id.result);
 
-        final Intent intent = new Intent();
-        intent.setAction("com.xhunmon.remote.PayService");
-        final Intent eintent = new Intent(createExplicitFromImplicitIntent(this,intent));
+        //第一种绑定方式
+        final Intent intentPay = new Intent();
+        intentPay.setAction("com.xhunmon.remote.PayService");
+        final Intent eintent = new Intent(createExplicitFromImplicitIntent(this,intentPay));
         bindService(eintent,new Conn(), Service.BIND_AUTO_CREATE);
+
+        //第二种绑定方式
+        Intent intentPlayer = new Intent();
+        intentPlayer.setClassName("com.xhunmon.aidlserver","com.xhunmon.aidlserver.PlayerService");
+        bindService(intentPlayer,mServiceConnection,Service.BIND_AUTO_CREATE);
     }
+
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mIPlayer = IPlayer.Stub.asInterface(service);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
 
     private class Conn implements ServiceConnection {
 
@@ -61,6 +84,20 @@ public class MainActivity extends Activity implements View.OnClickListener{
             try {
                 String pay = mIPay.pay(Integer.parseInt(mInput.getText().toString()));
                 mSpare.setText(pay);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }else if(v.getId() == R.id.player){
+            try {
+                String play = mIPlayer.play();
+                mResult.setText(play);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }else if (v.getId()==R.id.stop){
+            try {
+                String stop = mIPlayer.stop();
+                mResult.setText(stop);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
